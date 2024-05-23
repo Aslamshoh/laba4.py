@@ -3,80 +3,125 @@
 В  С  
 D  Е  
 30.  Формируется матрица F следующим образом: скопировать в нее А и  если в В количество простых чисел в нечетных столбцах, чем произведение чисел по периметру С, то поменять местами  С и В симметрично, иначе С и В поменять местами несимметрично. При этом матрица А не меняется. После чего если определитель матрицы А больше суммы диагональных элементов матрицы F, то вычисляется выражение: A*AT – K * F, иначе вычисляется выражение (A-1 +G-F-1)*K, где G-нижняя треугольная матрица, полученная из А. Выводятся по мере формирования А, F и все матричные операции последовательно 
+
 import numpy as np
+from matplotlib import pyplot as plt
 
-def generate_matrix(N):
-    # Генерация матрицы А с заполнением случайными числами в интервале [-10, 10]
-    A = np.random.randint(-10, 11, size=(N, N))
-    return A
+# Получение входных данных
+n = int(input("Введите размер матрицы N : "))
+while n < 6:
+    n = int(input("Введите размер матрицы: "))
+k = int(input("Введите коэффициент K: "))
 
+# Создание матрицы A
+A = np.random.randint(-10, 11, size=(n, n))
+F = A.copy()
+print("Матрица A:\n", A, "\n")
+
+# Вспомогательные функции для вывода матрицы
+def print_mat(mat, description):
+    plt.matshow(mat, cmap='inferno')
+    plt.title(description)
+    plt.colorbar()
+    plt.show()
+
+def print_mat1(mat, description):
+    plt.figure(figsize=(10, 4))
+    plt.plot(mat[0, :], 'o-', color='purple')
+    plt.title(description)
+    plt.xlabel('Индекс столбца')
+    plt.ylabel('Значение элемента')
+    plt.grid(True)
+    plt.show()
+
+def print_mat2(F, description):
+    column_sums = np.sum(F, axis=0)
+    plt.bar(range(len(column_sums)), column_sums)
+    plt.title('Столбчатая диаграмма сумм значений столбцов матрицы F')
+    plt.xlabel('Индекс столбца')
+    plt.ylabel('Сумма значений')
+    plt.show()
+
+def print_mat3(F, description):
+    column_sums = np.sum(np.abs(F), axis=0)
+    labels = [f'Столбец {i + 1}' for i in range(F.shape[1])]
+    plt.pie(column_sums, labels=labels, autopct='%1.1f%%', startangle=140)
+    plt.title(description)
+    plt.show()
+
+# Функция для проверки простоты числа
 def is_prime(num):
-    # Функция для проверки, является ли число простым
-    if num < 2:
+    if num <= 1:
         return False
     for i in range(2, int(num**0.5) + 1):
         if num % i == 0:
             return False
     return True
 
-def count_primes(matrix):
-    # Функция для подсчета простых чисел в нечетных столбцах матрицы B
-    B = matrix[::2, 1::2]
-    count = sum(is_prime(num) for num in np.nditer(B))
+# Функция для подсчета количества простых чисел в нечетных столбцах матрицы
+def count_primes_in_odd_columns(mat):
+    count = 0
+    for i in range(1, mat.shape[1], 2):
+        for j in range(mat.shape[0]):
+            if is_prime(mat[j, i]):
+                count += 1
     return count
 
-def generate_F(A, B, C):
-    # Формирование матрицы F на основе условий
-    F = A.copy()
-    perimeter_product = np.prod(np.concatenate([C[0], C[-1], C[1:-1, 0], C[1:-1, -1]]))
-    if count_primes(B) > perimeter_product:
-        F[:, [0, -1]] = F[:, [-1, 0]]
+# Функция для подсчета произведения чисел по периметру матрицы
+def product_of_perimeter(mat):
+    product = 1
+    for i in range(mat.shape[0]):
+        product *= mat[i, 0]
+        product *= mat[i, mat.shape[1] - 1]
+    for j in range(1, mat.shape[1] - 1):
+        product *= mat[0, j]
+        product *= mat[mat.shape[0] - 1, j]
+    return product
+
+# Функция для формирования матрицы F
+def form_matrix_F(A, B, C, D, E):
+    size = len(A) // 2
+    prime_count = count_primes_in_odd_columns(E)
+    perimeter_product = product_of_perimeter(C)
+
+    # Определение, какие подматрицы менять местами
+    if prime_count > perimeter_product:
+        B, C = np.fliplr(C), np.fliplr(B)
     else:
-        F[:, [1, -2]] = F[:, [-2, 1]]
+        C, E = E, C
+
+    # Формирование матрицы F из подматриц
+    F[:size, :size] = B
+    F[:size, size:] = C
+    F[size:, :size] = D
+    F[size:, size:] = E
     return F
 
-def main():
-    # Ввод размерности матрицы N
-    N = int(input("Введите размерность матрицы N: "))
-    K = int(input("Введите значение K: "))
+# Деление матрицы A на подматрицы B, C, D, E
+size = n // 2
+B, C, D, E = A[:size, :size], A[:size, size:], A[size:, :size], A[size:, size:]
 
-    # Генерация матрицы А
-    A = generate_matrix(N)
-    print("Матрица A:")
-    print(A)
+print_mat(A, "Матрица A")
+print_mat(B, "Матрица B")
+print_mat(C, "Матрица C")
+print_mat(D, "Матрица D")
+print_mat(E, "Матрица E")
 
-    # Генерация матриц B, C, D, E
-    B = np.random.randint(-10, 11, size=(N//2, N//2))
-    C = np.random.randint(-10, 11, size=(N//2, N//2))
-    D = np.random.randint(-10, 11, size=(N//2, N//2))
-    E = np.random.randint(-10, 11, size=(N//2, N//2))
-    print("Матрица B:")
-    print(B)
-    print("Матрица C:")
-    print(C)
-    print("Матрица D:")
-    print(D)
-    print("Матрица E:")
-    print(E)
+# Формирование матрицы F
+F = form_matrix_F(A, B, C, D, E)
+print("Матрица F после перестановки:\n", F, "\n")
+print_mat(F, "Матрица F")
+print_mat1(F, "Матрица F")
+print_mat2(F, "Матрица F")
+print_mat3(F, "Матрица F")
 
-    # Формирование матрицы F
-    F = generate_F(A, B, C)
-    print("Матрица F:")
-    print(F)
+# Вычисление результата в зависимости от условия
+if np.linalg.det(A) > np.trace(F):
+    result = np.linalg.inv(A).dot(A.T) - k * np.linalg.inv(F)
+else:
+    G = np.tril(A)
+    result = (A + G - F.T) * k
 
-    # Вычисление определителя матрицы A
-    det_A = np.linalg.det(A)
-    # Вычисление суммы диагональных элементов матрицы F
-    diagonal_sum_F = np.trace(F)
-
-    if det_A > diagonal_sum_F:
-        result = np.dot(A, A.T) - K * F
-    else:
-        G = np.tril(A)
-        result = (np.linalg.inv(A) + np.linalg.inv(G) - F - K) * K
-
-    print("Результат:")
-    print(result)
-
-if __name__ == "__main__":
-    main()
+# Вывод итоговой матрицы
+print("Результат:\n", result)
+print_mat(result, "Результат")
